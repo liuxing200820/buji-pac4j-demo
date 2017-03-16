@@ -1,0 +1,92 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<beans xmlns="http://www.springframework.org/schema/beans"
+       xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+       xsi:schemaLocation="http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans.xsd">
+
+    <bean id="roleAdminAuthGenerator" class="org.pac4j.demo.shiro.RoleAdminAuthGenerator"/>
+
+    <bean id="simpleAuthenticator"
+          class="org.pac4j.http.credentials.authenticator.test.SimpleTestUsernamePasswordAuthenticator"/>
+    
+    <bean id="casClient" class="org.pac4j.cas.client.CasClient">
+        <property name="configuration">
+            <bean class="org.pac4j.cas.config.CasConfiguration">
+                <property name="loginUrl" value="https://cas.xatime.sillyknight.com:8443/cas/login"/>
+            </bean>
+        </property>
+    </bean>
+
+    <bean id="clients" class="org.pac4j.core.client.Clients">
+        <property name="callbackUrl" value="http://localhost:8080/callback"/>
+        <property name="clients">
+            <list>
+                <ref bean="casClient"/>
+            </list>
+        </property>
+    </bean>
+
+    <bean id="requireRoleAdmin" class="org.pac4j.core.authorization.authorizer.RequireAnyRoleAuthorizer">
+        <property name="elements" value="ROLE_ADMIN"/>
+    </bean>
+
+    <bean id="customAuthorizer" class="org.pac4j.demo.shiro.CustomAuthorizer"/>
+
+    <bean id="excludedPathMatcher" class="org.pac4j.core.matching.ExcludedPathMatcher">
+        <property name="excludePath" value="^/facebook/notprotected\.jsp$"/>
+    </bean>
+
+    <bean id="config" class="org.pac4j.core.config.Config">
+        <property name="clients" ref="clients"/>
+        <property name="authorizers">
+            <map>
+                <entry key="admin" value-ref="requireRoleAdmin"/>
+                <entry key="custom" value-ref="customAuthorizer"/>
+            </map>
+        </property>
+        <property name="matchers">
+            <map>
+                <entry key="excludedPath" value-ref="excludedPathMatcher"/>
+            </map>
+        </property>
+    </bean>
+
+    <bean id="casSecurityFilter" class="io.buji.pac4j.filter.SecurityFilter">
+        <property name="config" ref="config"/>
+        <property name="clients" value="CasClient"/>
+    </bean>
+
+    <bean id="callbackFilter" class="io.buji.pac4j.filter.CallbackFilter">
+        <property name="config" ref="config"/>
+        <property name="multiProfile" value="true"/>
+    </bean>
+
+    <bean id="forceLoginFilter" class="org.pac4j.demo.shiro.ForceLoginFilter">
+        <property name="config" ref="config"/>
+    </bean>
+
+    <bean id="securityManager" class="org.apache.shiro.web.mgt.DefaultWebSecurityManager">
+        <property name="realm">
+            <bean class="org.pac4j.demo.shiro.UserRealm"/>
+        </property>
+    </bean>
+
+    <bean id="shiroFilter" class="org.apache.shiro.spring.web.ShiroFilterFactoryBean">
+        <property name="securityManager" ref="securityManager"/>
+        <property name="filters">
+            <map>
+                <entry key="casSecurityFilter" value-ref="casSecurityFilter"/>
+                <entry key="callbackFilter" value-ref="callbackFilter"/>
+                <entry key="forceLoginFilter" value-ref="forceLoginFilter"/>
+            </map>
+        </property>
+        <property name="filterChainDefinitionMap">
+            <map>
+                <entry key="/cas/**" value="casSecurityFilter"/>
+                <entry key="/callback" value="callbackFilter"/>
+                <entry key="/logout" value="logout"/>
+                <entry key="/forceLogin*" value="forceLoginFilter"/>
+                <entry key="/**" value="anon"/>
+            </map>
+        </property>
+    </bean>
+</beans>
