@@ -3,12 +3,13 @@
        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
        xsi:schemaLocation="http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans.xsd">
 
-    <bean id="roleAdminAuthGenerator" class="org.pac4j.demo.shiro.RoleAdminAuthGenerator"/>
+    <!--<bean id="roleAdminAuthGenerator" class="org.pac4j.demo.shiro.RoleAdminAuthGenerator"/>-->
 
-    <bean id="simpleAuthenticator"
-          class="org.pac4j.http.credentials.authenticator.test.SimpleTestUsernamePasswordAuthenticator"/>
+    <!--<bean id="simpleAuthenticator"
+          class="org.pac4j.http.credentials.authenticator.test.SimpleTestUsernamePasswordAuthenticator"/>-->
     
-    <bean id="casClient" class="org.pac4j.cas.client.CasClient">
+    <bean id="casClient" class="org.pac4j.demo.shiro.Pac4jCasClient">
+        <property name="cacheManager" ref="springCacheManager"/>
         <property name="configuration">
             <bean class="org.pac4j.cas.config.CasConfiguration">
                 <property name="loginUrl" value="https://cas.xatime.sillyknight.com:8443/cas/login"/>
@@ -25,39 +26,49 @@
         </property>
     </bean>
 
-    <bean id="requireRoleAdmin" class="org.pac4j.core.authorization.authorizer.RequireAnyRoleAuthorizer">
+    <!--<bean id="requireRoleAdmin" class="org.pac4j.core.authorization.authorizer.RequireAnyRoleAuthorizer">
         <property name="elements" value="ROLE_ADMIN"/>
     </bean>
 
-    <bean id="customAuthorizer" class="org.pac4j.demo.shiro.CustomAuthorizer"/>
+    <bean id="customAuthorizer" class="org.pac4j.demo.shiro.CustomAuthorizer"/>-->
 
-    <bean id="excludedPathMatcher" class="org.pac4j.core.matching.ExcludedPathMatcher">
+    <!--<bean id="excludedPathMatcher" class="org.pac4j.core.matching.ExcludedPathMatcher">
         <property name="excludePath" value="^/facebook/notprotected\.jsp$"/>
-    </bean>
+    </bean>-->
 
     <bean id="config" class="org.pac4j.core.config.Config">
         <property name="clients" ref="clients"/>
-        <property name="authorizers">
+        <!--<property name="authorizers">
             <map>
                 <entry key="admin" value-ref="requireRoleAdmin"/>
                 <entry key="custom" value-ref="customAuthorizer"/>
             </map>
-        </property>
-        <property name="matchers">
+        </property>-->
+        <!--<property name="matchers">
             <map>
                 <entry key="excludedPath" value-ref="excludedPathMatcher"/>
             </map>
-        </property>
+        </property>-->
     </bean>
 
-    <bean id="casSecurityFilter" class="io.buji.pac4j.filter.SecurityFilter">
+    <bean id="casSecurityFilter" class="org.pac4j.demo.shiro.Pac4jSecurityFilter">
+        <constructor-arg>
+            <bean class="org.pac4j.demo.shiro.Pac4jSecurityLogic">
+                <property name="cacheManager" ref="springCacheManager"/>
+            </bean>
+        </constructor-arg>
         <property name="config" ref="config"/>
-        <property name="clients" value="CasClient"/>
+        <property name="clients" value="Pac4jCasClient"/>
     </bean>
 
-    <bean id="callbackFilter" class="io.buji.pac4j.filter.CallbackFilter">
+    <bean id="callbackFilter" class="org.pac4j.demo.shiro.Pac4jCallbackFilter">
+        <constructor-arg>
+            <bean class="org.pac4j.demo.shiro.Pac4jCallbackLogic">
+                <property name="cacheManager" ref="springCacheManager"/>
+            </bean>
+        </constructor-arg>
         <property name="config" ref="config"/>
-        <property name="multiProfile" value="true"/>
+        <!--<property name="multiProfile" value="true"/>-->
     </bean>
 
     <bean id="forceLoginFilter" class="org.pac4j.demo.shiro.ForceLoginFilter">
